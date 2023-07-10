@@ -1,21 +1,18 @@
 #include <iostream>
 
-#include "input_reader.h"
-#include "stat_reader.h"
-#include "transport_catalogue.h"
+#include "json_reader.h"
+#include "map_renderer.h"
 
-using namespace transport_catalogue;
-
-[[maybe_unused]] void Tests(TransportCatalogue& catalogue) {
-    using namespace transport_catalogue::tests;
-    TestGetStopNames(catalogue);
-    TestGetBusNames(catalogue);
-    TestGetDistancesBetweenStops(catalogue);
+[[maybe_unused]] void Tests(transport_catalogue::TransportCatalogue& catalogue) {
+    using namespace transport_catalogue;
+    catalogue.TestGetStopNames();
+    catalogue.TestGetBusNames();
+    catalogue.TestGetDistancesBetweenStops();
 }
 
 int main() {
-    TransportCatalogue transport_catalogue;
-    input_reader::GetInputRequest(transport_catalogue, std::cin);
-    output::GetOutputRequest(transport_catalogue, std::cin);
-    //Tests(transport_catalogue);
+    transport_catalogue::TransportCatalogue catalogue;
+    renderer::MapRenderer map_renderer;
+    request_handler::RequestHandler request_handler(catalogue, map_renderer);
+    json_reader::GetJsonRequest(catalogue, map_renderer, request_handler, std::cin, std::cout);
 }

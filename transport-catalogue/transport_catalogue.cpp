@@ -2,8 +2,11 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #include "transport_catalogue.h"
+
+using namespace std::literals;
 
 namespace transport_catalogue {
     void TransportCatalogue::AddStop(const Stop& stop) {
@@ -35,19 +38,6 @@ namespace transport_catalogue {
         real_distances_[{from, to}] = distance;
     }
 
-    void TransportCatalogue::SetDirectDistance(const Stop* from, const Stop* to, double distance) {
-        direct_distances_[{from, to}] = distance;
-    }
-
-    void TransportCatalogue::CountDirectDistances (const Bus* bus) {
-        for (size_t i = 1; i < bus->stops.size(); ++i) {
-            const Stop* from = bus->stops[i-1];
-            const Stop* to = bus->stops[i];
-            double real_distance = ComputeDistance(from->coordinates, to->coordinates);
-            SetDirectDistance(from, to, real_distance);
-        }
-    }
-
     int TransportCatalogue::GetRealDistance(const Stop* from, const Stop* to) const {
         if (real_distances_.count({from, to})) {
             return real_distances_.at({from, to});
@@ -56,25 +46,18 @@ namespace transport_catalogue {
         }
     }
 
-    double TransportCatalogue::GetDirectDistance(const Stop* from, const Stop* to) const {
-        if (direct_distances_.count({from, to})) {
-            return direct_distances_.at({from, to});
-        } else {
-            return direct_distances_.at({to, from});
-        }
-    }
-
-    std::optional<BusInfo> TransportCatalogue::GetBusInfo(const Bus* bus) {
+    std::optional<BusInfo> TransportCatalogue::GetBusInfo(const Bus* bus) const {
         if (bus != nullptr) {
-            BusInfo bus_info{};
+            BusInfo bus_info;
+            bus_info.route_length = 0;
+            bus_info.curvature = 0.0;
             double common_direct_distance = 0.0;
             bus_info.stops_count = static_cast<int>(bus->stops.size());
             std::unordered_set unique_stops(bus->stops.begin(), bus->stops.end());
             bus_info.unique_stops_count = static_cast<int>(unique_stops.size());
-            CountDirectDistances(bus);
-            for (size_t i = 1; i < static_cast<int>(bus->stops.size()); ++i) {
+            for (size_t i = 1; i < bus->stops.size(); ++i) {
                 bus_info.route_length += GetRealDistance(bus->stops[i-1], bus->stops[i]);
-                common_direct_distance += GetDirectDistance(bus->stops[i-1], bus->stops[i]);
+                common_direct_distance += geo::ComputeDistance(bus->stops[i-1]->coordinates, bus->stops[i]->coordinates);
             }
             bus_info.curvature = 1.0 * bus_info.route_length / common_direct_distance;
             return bus_info;
@@ -83,7 +66,7 @@ namespace transport_catalogue {
         }
     }
 
-    std::optional<StopInfo> TransportCatalogue::GetStopInfo(const std::string_view& stop_name) {
+    std::optional<StopInfo> TransportCatalogue::GetStopInfo(const std::string_view& stop_name) const {
         if (FindStop(stop_name) == nullptr) {
             return std::nullopt;
         } else {
@@ -108,32 +91,29 @@ namespace transport_catalogue {
     std::unordered_map<std::string_view, const Stop*> TransportCatalogue::GetStopNames() const {
         return stop_names_;
     }
-    std::unordered_map<std::string_view, const Bus*> TransportCatalogue::GetRouteNames() const {
+    std::map<std::string_view, const Bus*> TransportCatalogue::GetRouteNames() const {
         return route_names_;
     }
 
-    namespace tests {
-        void TestGetStopNames(const TransportCatalogue& catalogue) {
-            for (const auto& [name, name_link] : catalogue.GetStopNames()) {
-                std::cout << "Name: " << name << " <> " << " Link name: " << name_link->name << std::endl;
-                std::cout << std::setprecision(8) << name_link->coordinates.lat << "___" << name_link->coordinates.lng << std::endl;
+    void TransportCatalogue::TestGetStopNames() {
+        for (const auto& [name, name_link] : stop_names_) {
+            std::cout << "Name: " << name << " <> " << " Link name: " << name_link->name << std::endl;
+            std::cout << std::setprecision(8) << name_link->coordinates.lat << "___" << name_link->coordinates.lng << std::endl;
+        }
+    }
+
+    void TransportCatalogue::TestGetBusNames() {
+        for (const auto& [bus, bus_link] : route_names_) {
+            std::cout << "Name: " << bus << " <> " << " Link name: " << bus_link->name << std::endl;
+            for (const auto& stop : bus_link->stops) {
+                std::cout << stop->name << std::endl;
             }
         }
+    }
 
-        void TestGetBusNames(const TransportCatalogue& catalogue) {
-            for (const auto& [bus, bus_link] : catalogue.GetRouteNames()) {
-                std::cout << "Name: " << bus << " <> " << " Link name: " << bus_link->name << std::endl;
-                for (const auto& stop : bus_link->stops) {
-                    std::cout << stop->name << std::endl;
-                }
-            }
-        }
-
-        void TestGetDistancesBetweenStops(const TransportCatalogue& catalogue) {
-            RealDistanceTable distances = catalogue.GetAllDistances();
-            for (const auto& [pair_stops, dist] : distances) {
-                std::cout << "1: " << pair_stops.first->name << " | 2: " << pair_stops.second->name << " ----- " << dist << std::endl;
-            }
+    void TransportCatalogue::TestGetDistancesBetweenStops() {
+        for (const auto& [pair_stops, dist] : real_distances_) {
+            std::cout << "1: " << pair_stops.first->name << " | 2: " << pair_stops.second->name << " ----- " << dist << std::endl;
         }
     }
 }
