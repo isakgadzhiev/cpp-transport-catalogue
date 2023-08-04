@@ -1,12 +1,9 @@
 #pragma once
 
 #include <iostream>
-#include <string>
-#include <vector>
 #include <string_view>
 #include <iomanip>
 
-#include "geo.h"
 #include "transport_catalogue.h"
 
 namespace input_reader {

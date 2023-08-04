@@ -1,7 +1,7 @@
 #pragma once
 
 #include "transport_catalogue.h"
-#include "json.h"
+#include "json_builder.h"
 #include "request_handler.h"
 #include "map_renderer.h"
 #include "svg.h"
@@ -14,12 +14,15 @@ namespace json_reader {
     };
 
     void GetMapRequest(const json::Dict& request,
-                request_handler::RequestHandler& request_handler); // Выделяем запрос на получение изображения
+                       request_handler::RequestHandler& request_handler,
+                       json::Builder& builder); // Выделяем запрос на получение изображения
 
     void GetStopInfoForOutput(const json::Dict& request,
-                              request_handler::RequestHandler& request_handler); // Выделяем инфо об остановке из справочника
+                              request_handler::RequestHandler& request_handler,
+                              json::Builder& builder); // Выделяем инфо об остановке из справочника
     void GetBusInfoForOutput(const json::Dict& request,
-                             request_handler::RequestHandler& request_handler); // Выделяем инфо о маршруте из справочника
+                             request_handler::RequestHandler& request_handler,
+                             json::Builder& builder); // Выделяем инфо о маршруте из справочника
     std::vector<std::string_view> GetStopsFromBusInfo(const json::Dict& bus_info); // Выделяем остановки из информации о маршруте
     Bus SetBusFromJsonRequest(transport_catalogue::TransportCatalogue& catalogue,
                               const json::Dict& bus_info); //Выделяем информацию о маршруте из запроса

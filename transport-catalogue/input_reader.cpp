@@ -19,6 +19,14 @@ namespace input_reader {
         }
     }
 
+    void CutPartOfRequest(string_view& request, const char& delimiter) {
+        size_t pos = request.find(delimiter);
+        request.remove_prefix(pos + 2);
+    }
+    void CutPartOfRequest(string_view& request, const size_t& pos) {
+        request.remove_prefix(pos + 2);
+    }
+
     vector<string> SplitIntoStops(string_view text, Bus& bus) {
         vector<string> words;
         string word;
@@ -28,13 +36,12 @@ namespace input_reader {
         } else {
             delimiter = '-';
         }
-        size_t pos = text.find(':');
-        text.remove_prefix(pos + 2);
+        CutPartOfRequest(text, ':');
         size_t end = text.find(delimiter);
         while (end != text.npos) {
             word = text.substr(0, end - 1);
             words.push_back(std::move(word));
-            text.remove_prefix(end + 2);
+            CutPartOfRequest(text, end);
             end = text.find(delimiter);
         }
         word = text.substr(0, text.size());
@@ -61,7 +68,7 @@ namespace input_reader {
         size_t pos1 = request.find(' ') + 1;
         size_t pos2 = request.find(':');
         string name = string(request.substr(pos1, pos2 - pos1));
-        request.remove_prefix(pos2 + 2);
+        CutPartOfRequest(request, pos2);
         return name;
     }
 
@@ -75,12 +82,12 @@ namespace input_reader {
 
     void SetDistanceBetweenStops(TransportCatalogue& catalogue, string_view request) {
         const Stop* from = catalogue.FindStop(GetNameFromRequest(request));
-        request.remove_prefix(request.find(',') + 2);
-        auto start = request.find(',');
+        CutPartOfRequest(request, ',');
+        size_t start = request.find(',');
         if (start == request.npos) {
             return;
         } else {
-            request.remove_prefix(start + 2);
+            CutPartOfRequest(request, start);
             auto delimiter = request.find(',');
             while (delimiter != request.npos) {
                 auto pos_m = request.find('m');
@@ -90,7 +97,7 @@ namespace input_reader {
                 string destination;
                 if (delimiter != request.npos) {
                     destination = string(request.substr(0, delimiter));
-                    request.remove_prefix(delimiter + 2);
+                    CutPartOfRequest(request, delimiter);
                 } else {
                     destination = string(request.substr(0, request.size()));
                 }
@@ -109,18 +116,18 @@ namespace input_reader {
 
     Stop GetStopFromRequest(string_view request) {
         Stop stop;
-        stop.name = GetNameFromRequest(request);;
+        stop.name = GetNameFromRequest(request);
         // Определяем широту из запроса
-        request.remove_prefix(request.find(':') + 2);
+        CutPartOfRequest(request, ':');
         stop.coordinates.lat = stod(string(request.substr(0, request.find(','))));
         // Определяем долготу из запроса
-        request.remove_prefix(request.find(',') + 2);
+        CutPartOfRequest(request, ',');
         auto end = request.find(',');
         if (end == request.npos) {
             stop.coordinates.lng = stod(string(request.substr(0, request.size())));
         } else {
             stop.coordinates.lng = stod(string(request.substr(0, end)));
-            request.remove_prefix(end + 2);
+            CutPartOfRequest(request, end);
         }
         return stop;
     }

@@ -3,73 +3,134 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
+#include <utility>
 #include <variant>
-#include <array>
+#include <vector>
 
 namespace json {
 
     class Node;
     using Dict = std::map<std::string, Node>;
     using Array = std::vector<Node>;
-    using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
 
-//------------------ Node ------------------
-    class Node : private Value {
-    public:
-        using variant::variant;
-
-        bool IsNull() const;
-        bool IsArray() const;
-        bool IsMap() const;
-        bool IsBool() const;
-        bool IsInt() const;
-        bool IsDouble() const;
-        bool IsPureDouble() const;
-        bool IsString() const;
-
-        const Array& AsArray() const;
-        const Dict& AsMap() const;
-        bool AsBool() const;
-        int AsInt() const;
-        double AsDouble() const;
-        const std::string& AsString() const;
-        const Value& GetValue() const;
-
-    };
-
-    bool operator==(const Node& lhs, const Node& rhs);
-    bool operator!=(const Node& lhs, const Node& rhs);
-
-//------------------ Parsing / Load ------------------
-// Эта ошибка должна выбрасываться при ошибках парсинга JSON
     class ParsingError : public std::runtime_error {
     public:
         using runtime_error::runtime_error;
     };
-    namespace load {
 
-        Node LoadNode(std::istream& input);
-        Node LoadNull(std::istream& input);
-        Node LoadBool(std::istream& input);
-        Node LoadArray(std::istream& input);
-        Node LoadNumber(std::istream& input);
-        Node LoadString(std::istream& input);
-        Node LoadDict(std::istream& input);
-    } // namespace load
+    class Node final
+            : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
+    public:
+        using variant::variant;
+        using Value = variant;
 
-//------------------ Document ------------------
+        Node (Value& value)
+            : std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>(std::move(value)) {
+        }
+
+        bool IsInt() const {
+            return std::holds_alternative<int>(*this);
+        }
+        int AsInt() const {
+            using namespace std::literals;
+            if (!IsInt()) {
+                throw std::logic_error("Not an int"s);
+            }
+            return std::get<int>(*this);
+        }
+
+        bool IsPureDouble() const {
+            return std::holds_alternative<double>(*this);
+        }
+        bool IsDouble() const {
+            return IsInt() || IsPureDouble();
+        }
+        double AsDouble() const {
+            using namespace std::literals;
+            if (!IsDouble()) {
+                throw std::logic_error("Not a double"s);
+            }
+            return IsPureDouble() ? std::get<double>(*this) : AsInt();
+        }
+
+        bool IsBool() const {
+            return std::holds_alternative<bool>(*this);
+        }
+        bool AsBool() const {
+            using namespace std::literals;
+            if (!IsBool()) {
+                throw std::logic_error("Not a bool"s);
+            }
+
+            return std::get<bool>(*this);
+        }
+
+        bool IsNull() const {
+            return std::holds_alternative<std::nullptr_t>(*this);
+        }
+
+        bool IsArray() const {
+            return std::holds_alternative<Array>(*this);
+        }
+        const Array& AsArray() const {
+            using namespace std::literals;
+            if (!IsArray()) {
+                throw std::logic_error("Not an array"s);
+            }
+
+            return std::get<Array>(*this);
+        }
+
+        bool IsString() const {
+            return std::holds_alternative<std::string>(*this);
+        }
+        const std::string& AsString() const {
+            using namespace std::literals;
+            if (!IsString()) {
+                throw std::logic_error("Not a string"s);
+            }
+
+            return std::get<std::string>(*this);
+        }
+
+        bool IsDict() const {
+            return std::holds_alternative<Dict>(*this);
+        }
+        const Dict& AsDict() const {
+            using namespace std::literals;
+            if (!IsDict()) {
+                throw std::logic_error("Not a dict"s);
+            }
+
+            return std::get<Dict>(*this);
+        }
+
+        bool operator==(const Node& rhs) const {
+            return GetValue() == rhs.GetValue();
+        }
+
+        const Value& GetValue() const {
+            return *this;
+        }
+    };
+
+    inline bool operator!=(const Node& lhs, const Node& rhs) {
+        return !(lhs == rhs);
+    }
+
     class Document {
     public:
-        explicit Document(Node root);
+        explicit Document(Node root)
+                : root_(std::move(root)) {
+        }
 
-        const Node& GetRoot() const;
+        const Node& GetRoot() const {
+            return root_;
+        }
 
     private:
         Node root_;
     };
-
-    Document Load(std::istream& input);
 
     inline bool operator==(const Document& lhs, const Document& rhs) {
         return lhs.GetRoot() == rhs.GetRoot();
@@ -79,33 +140,7 @@ namespace json {
         return !(lhs == rhs);
     }
 
-//------------------ Print ------------------
-    // Контекст вывода, хранит ссылку на поток вывода и текущий отсуп
-    struct PrintContext {
-        std::ostream& out;
-        int indent_step = 4;
-        int indent = 0;
-
-        void PrintIndent() const;
-        // Возвращает новый контекст вывода с увеличенным смещением
-        PrintContext Indented() const;
-    };
-
-    // Шаблон для вывода простых значений (int, double, bool)
-    template <typename Value>
-    void PrintValue(const Value& value, const PrintContext& ctx) {
-        ctx.out << value;
-    }
-
-    // Перегрузка функции PrintValue для вывода значений null
-    void PrintValue(std::nullptr_t, const PrintContext& ctx);
-    // Перегрузка функции PrintValue для вывода строки в кавычках
-    void PrintValue(const std::string& str, const PrintContext& ctx);
-    // Перегрузка функции PrintValue для вывода массива Array
-    void PrintValue(const Array& arr, const PrintContext& ctx);
-    // Перегрузка функции PrintValue для вывода словаря Dict
-    void PrintValue(const Dict& dict, const PrintContext& ctx);
-    void PrintNode(const Node& node, const PrintContext& context);
+    Document Load(std::istream& input);
 
     void Print(const Document& doc, std::ostream& output);
 
