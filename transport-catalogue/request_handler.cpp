@@ -2,16 +2,16 @@
 
 namespace request_handler {
     std::optional<BusInfo> RequestHandler::GetBusStat(const std::string_view& bus_name) const {
-        const Bus* bus = db_.FindBus(bus_name);
+        const Bus* bus = catalogue_.FindBus(bus_name);
         if (bus) {
-            return db_.GetBusInfo(bus);
+            return catalogue_.GetBusInfo(bus);
         } else {
             return {};
         }
     }
 
     std::optional<StopInfo> RequestHandler::GetBusesByStop(const std::string_view& stop_name) const {
-        return db_.GetStopInfo(stop_name);
+        return catalogue_.GetStopInfo(stop_name);
     }
 
     void RequestHandler::AddOutputRequest(const json::Node& output_request) {
@@ -27,6 +27,11 @@ namespace request_handler {
     }
 
     svg::Document RequestHandler::RenderMap() const {
-        return renderer_.AddRoutesOnMap(db_.GetRouteNames());
+        return renderer_.AddRoutesOnMap(catalogue_.GetRouteNames());
+    }
+
+    RequestHandler::RouteInfo RequestHandler::GetRouteInfo(const std::string_view from,
+                                                           const std::string_view to) const {
+        return router_.GetRouteInfo(catalogue_.FindStop(from), catalogue_.FindStop(to));
     }
 }
