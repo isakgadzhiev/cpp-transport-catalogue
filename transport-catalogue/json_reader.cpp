@@ -7,8 +7,41 @@ namespace json_reader {
     using namespace std;
     using namespace std::literals;
 
-    void GetMapRequest(const json::Dict& request,
-                       request_handler::RequestHandler& request_handler,
+    void GetRouteRequest(const json::Dict& request, request_handler::RequestHandler& request_handler,
+                         json::Builder& builder) {
+        using namespace transport_router;
+        using RouteInfo = std::optional<TransportRouter::RouteInfo>;
+        RouteInfo route_info = request_handler.GetRouteInfo(request.at("from").AsString(),
+                                                            request.at("to").AsString());
+
+        if (route_info) {
+            builder.StartDict()
+                    .Key("request_id"s).Value(request.at("id"s).AsInt())
+                    .Key("total_time"s).Value(route_info.value().time)
+                    .Key("items"s).StartArray();
+            for (const auto& item : route_info.value().items) {
+                if (item.type == TransportRouter::ItemType::WAIT) {
+                    builder.StartDict().Key("type"s).Value("Wait"s)
+                        .Key("stop_name"s).Value(std::string(item.route_name))
+                        .Key("time"s).Value(item.time)
+                    .EndDict();
+                } else if (item.type == TransportRouter::ItemType::BUS) {
+                    builder.StartDict().Key("type"s).Value("Bus"s)
+                        .Key("bus"s).Value(std::string(item.route_name))
+                        .Key("span_count"s).Value(item.span_count)
+                        .Key("time"s).Value(item.time)
+                    .EndDict();
+                }
+            }
+            builder.EndArray().EndDict();
+        } else {
+            builder.StartDict().Key("request_id"s).Value(request.at("id"s).AsInt())
+                    .Key("error_message"s).Value("not found"s)
+                    .EndDict();
+        }
+    }
+
+    void GetMapRequest(const json::Dict& request, request_handler::RequestHandler& request_handler,
                        json::Builder& builder) {
         std::ostringstream out;
         svg::Document svg_map = request_handler.RenderMap();
@@ -19,8 +52,7 @@ namespace json_reader {
             .EndDict();
     }
 
-    void GetStopInfoForOutput(const json::Dict& request,
-                              request_handler::RequestHandler& request_handler,
+    void GetStopInfoForOutput(const json::Dict& request, request_handler::RequestHandler& request_handler,
                               json::Builder& builder) {
         std::optional<StopInfo> stop_info = request_handler.GetBusesByStop(request.at("name"s).AsString());
         builder.StartDict()
@@ -41,8 +73,7 @@ namespace json_reader {
         builder.EndDict();
     }
 
-    void GetBusInfoForOutput(const json::Dict& request,
-                             request_handler::RequestHandler& request_handler,
+    void GetBusInfoForOutput(const json::Dict& request, request_handler::RequestHandler& request_handler,
                              json::Builder& builder) {
         std::optional<BusInfo> bus_info = request_handler.GetBusStat(request.at("name"s).AsString());
         builder.StartDict()
@@ -66,8 +97,7 @@ namespace json_reader {
         return stops;
     }
 
-    Bus SetBusFromJsonRequest(transport_catalogue::TransportCatalogue& catalogue,
-                              const json::Dict& bus_info) {
+    Bus SetBusFromJsonRequest(transport_catalogue::TransportCatalogue& catalogue, const json::Dict& bus_info) {
         Bus bus;
         bus.name = bus_info.at("name"s).AsString();
         bus.is_round_route = bus_info.at("is_roundtrip"s).AsBool();
@@ -90,8 +120,7 @@ namespace json_reader {
         return stop;
     }
 
-    void SetDistanceBetweenStops(transport_catalogue::TransportCatalogue& catalogue,
-                                 const json::Dict& stop_info) {
+    void SetDistanceBetweenStops(transport_catalogue::TransportCatalogue& catalogue, const json::Dict& stop_info) {
         const Stop* source = catalogue.FindStop(stop_info.at("name"s).AsString());
         const json::Dict road_distances = stop_info.at("road_distances"s).AsDict();
         for (const auto& [destination, distance] : road_distances) {
@@ -123,11 +152,10 @@ namespace json_reader {
     }
 
 
-    void GetRenderJsonRequest(request_handler::RequestHandler& request_handler,
-                              renderer::MapRenderer& map_renderer,
-                              const json::Node& request_info) {
+    void GetRenderJsonRequest(request_handler::RequestHandler& request_handler, renderer::MapRenderer& map_renderer,
+                              const json::Dict& request_info) {
         renderer::MapRendererSettings renderer_settings;
-        for (const auto& [key, value] : request_info.AsDict()) {
+        for (const auto& [key, value] : request_info) {
             if (key == "width") {
                 renderer_settings.width = value.AsDouble();
             } else if (key == "height"s) {
@@ -187,11 +215,11 @@ namespace json_reader {
         }
     }
 
-    void GetOutputJsonRequest(request_handler::RequestHandler& request_handler, const json::Node& request_info,
+    void GetOutputJsonRequest(request_handler::RequestHandler& request_handler, const json::Array& request_info,
                               [[maybe_unused]] ostream& output) {
         json::Builder builder;
         builder.StartArray();
-        for (const auto& output_requests : request_info.AsArray()) {
+        for (const auto& output_requests : request_info) {
             json::Dict request = output_requests.AsDict();
             if (request.at("type"s).AsString() == "Stop"s) {
                 GetStopInfoForOutput(request, request_handler, builder) ;
@@ -199,6 +227,8 @@ namespace json_reader {
                 GetBusInfoForOutput(request, request_handler, builder);
             } else if (request.at("type"s).AsString() == "Map"s) {
                 GetMapRequest(request, request_handler, builder);
+            } else if (request.at("type"s).AsString() == "Route"s) {
+                GetRouteRequest(request, request_handler, builder);
             }
         }
         builder.EndArray();
@@ -206,16 +236,35 @@ namespace json_reader {
         //request_handler.PrintOutputRequests(output);
     }
 
+    void GetRouteJsonRequest(transport_router::TransportRouter &router, const json::Dict &request_info) {
+        using namespace transport_router;
+        Requests requests{};
+        transport_router::TransportRouter::RouteSettings r_settings{};
+        for (const auto& [setting, value] : request_info) {
+            if (setting == "bus_velocity"s) {
+                r_settings.velocity = value.AsDouble();
+            } else if (setting == "bus_wait_time"s) {
+                r_settings.wait_time = value.AsInt();
+            } else {
+                throw std::invalid_argument("Incorrect types of routing settings"s);
+            }
+        }
+        router.SetRouteSettings(r_settings).BuildRoutes();
+    }
+
     void GetJsonRequest(transport_catalogue::TransportCatalogue& catalogue,
                         renderer::MapRenderer& map_renderer,
-                        request_handler::RequestHandler& request_handler,
+                        transport_router::TransportRouter& router,
                         istream& input, ostream& output) {
+        request_handler::RequestHandler request_handler(catalogue, map_renderer, router);
         json::Document requests = json::Load(input);
         for (const auto& [request_type, request_info] : requests.GetRoot().AsDict()) {
             if (request_type == "base_requests"s) {
                 GetInputJsonRequest(catalogue, request_info.AsArray());
             } else if (request_type == "render_settings"s) {
-                GetRenderJsonRequest(request_handler, map_renderer, request_info);
+                GetRenderJsonRequest(request_handler, map_renderer, request_info.AsDict());
+            } else if (request_type == "routing_settings"s) {
+                GetRouteJsonRequest(router, request_info.AsDict());
             } else if (request_type == "stat_requests"s) {
                 GetOutputJsonRequest(request_handler, request_info.AsArray(), output);
             } else {
