@@ -39,10 +39,12 @@ namespace transport_catalogue {
         std::optional<BusInfo> GetBusInfo(const Bus* bus) const; // Получение данных о маршруте
         std::optional<StopInfo> GetStopInfo(const std::string_view& stop_name) const; // Получение данных об остановке
         std::map<std::string_view, const Bus*> GetRouteNames() const; // Получение всех маршрутов из каталога
+        std::unordered_map<std::string_view, const Stop*> GetStopNames() const; // Получение всех остановок из каталога
 
+        size_t GetStopsCount() const;
+        size_t GetBusesCount() const;
 
-        const RealDistanceTable& GetAllDistances() const; // Для реализации тестов
-        std::unordered_map<std::string_view, const Stop*> GetStopNames() const; // Для реализации тестов
+        const RealDistanceTable& GetAllDistances() const;
 
         // Тесты
         void TestGetStopNames();

@@ -19,29 +19,30 @@ namespace transport_router {
             WAIT,
             BUS
         };
-    private:
+
         struct Item {
             ItemType type;
             std::string_view route_name;
             double time;
             int span_count;
         };
-    public:
+
         struct RouteInfo {
             double time;
             std::vector<Item> items;
         };
 
-    public:
         TransportRouter(const transport_catalogue::TransportCatalogue& catalogue);
 
         // Устанавливаем настройки маршрутизатора
-        TransportRouter& SetRouteSettings(const RouteSettings& r_settings);
+        void SetSettingsAndBuildGraph(const RouteSettings& r_settings);
 
-        //Строим граф и создаем маршрутизатор
-        void BuildRoutes ();
+        //Строим граф
+        void BuildGraph ();
 
         std::optional<RouteInfo> GetRouteInfo(const Stop* from, const Stop* to) const;
+
+        RouteSettings GetSettings() const;
 
     private:
         // Номер вершины графа (с ожиданием)

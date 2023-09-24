@@ -152,8 +152,7 @@ namespace json_reader {
     }
 
 
-    void GetRenderJsonRequest(request_handler::RequestHandler& request_handler, renderer::MapRenderer& map_renderer,
-                              const json::Dict& request_info) {
+    void GetRenderJsonRequest(renderer::MapRenderer& map_renderer, const json::Dict& request_info) {
         renderer::MapRendererSettings renderer_settings;
         for (const auto& [key, value] : request_info) {
             if (key == "width") {
@@ -189,7 +188,7 @@ namespace json_reader {
             }
         }
         map_renderer.SetRenderSettings(renderer_settings);
-        request_handler.RenderMap();
+        //request_handler.RenderMap();
     }
 
     void GetInputJsonRequest(transport_catalogue::TransportCatalogue& catalogue,
@@ -232,13 +231,11 @@ namespace json_reader {
             }
         }
         builder.EndArray();
-        json::Print(json::Document{builder.Build()}, cout);
-        //request_handler.PrintOutputRequests(output);
+        json::Print(json::Document{builder.Build()}, output);
     }
 
-    void GetRouteJsonRequest(transport_router::TransportRouter &router, const json::Dict &request_info) {
+    void GetRouteJsonRequest(transport_router::TransportRouter& router, const json::Dict &request_info) {
         using namespace transport_router;
-        Requests requests{};
         transport_router::TransportRouter::RouteSettings r_settings{};
         for (const auto& [setting, value] : request_info) {
             if (setting == "bus_velocity"s) {
@@ -249,7 +246,7 @@ namespace json_reader {
                 throw std::invalid_argument("Incorrect types of routing settings"s);
             }
         }
-        router.SetRouteSettings(r_settings).BuildRoutes();
+        router.SetSettingsAndBuildGraph(r_settings);
     }
 
     void GetJsonRequest(transport_catalogue::TransportCatalogue& catalogue,
@@ -262,13 +259,56 @@ namespace json_reader {
             if (request_type == "base_requests"s) {
                 GetInputJsonRequest(catalogue, request_info.AsArray());
             } else if (request_type == "render_settings"s) {
-                GetRenderJsonRequest(request_handler, map_renderer, request_info.AsDict());
+                GetRenderJsonRequest(map_renderer, request_info.AsDict());
             } else if (request_type == "routing_settings"s) {
                 GetRouteJsonRequest(router, request_info.AsDict());
             } else if (request_type == "stat_requests"s) {
                 GetOutputJsonRequest(request_handler, request_info.AsArray(), output);
             } else {
                 throw std::invalid_argument("Incorrect JSON request"s);
+            }
+        }
+    }
+
+    void GetSerializeJsonRequest(serialize::Serializer& serializer, const json::Dict &request_info) {
+        serializer.SetSetting(request_info.at("file").AsString());
+    }
+
+    void MakeBaseRequest(transport_catalogue::TransportCatalogue& catalogue,
+                         renderer::MapRenderer& map_renderer,
+                         transport_router::TransportRouter& router,
+                         serialize::Serializer& serializer, istream& input) {
+        json::Document requests = json::Load(input);
+        for (const auto& [request_type, request_info] : requests.GetRoot().AsDict()) {
+            if (request_type == "base_requests"s) {
+                GetInputJsonRequest(catalogue, request_info.AsArray());
+            } else if (request_type == "render_settings"s) {
+                GetRenderJsonRequest(map_renderer, request_info.AsDict());
+            } else if (request_type == "routing_settings"s) {
+                GetRouteJsonRequest(router, request_info.AsDict());
+            } else if (request_type == "serialization_settings"s) {
+                GetSerializeJsonRequest(serializer, request_info.AsDict());
+            } else {
+                throw std::invalid_argument("Incorrect make base JSON request"s);
+            }
+        }
+        serializer.SerializeToFile();
+    }
+
+    void ProcessRequest(transport_catalogue::TransportCatalogue& catalogue,
+                        renderer::MapRenderer& map_renderer,
+                        transport_router::TransportRouter& router,
+                        serialize::Serializer& serializer, istream& input, ostream& output) {
+        json::Document requests = json::Load(input);
+        request_handler::RequestHandler request_handler(catalogue, map_renderer, router);
+        for (const auto& [request_type, request_info] : requests.GetRoot().AsDict()) {
+            if (request_type == "serialization_settings"s) {
+                GetSerializeJsonRequest(serializer, request_info.AsDict());
+                serializer.DeserializeFromFile();
+            } else if (request_type == "stat_requests"s) {
+                GetOutputJsonRequest(request_handler, request_info.AsArray(), output);
+            } else {
+                throw std::invalid_argument("Incorrect process JSON request"s);
             }
         }
     }

@@ -5,12 +5,12 @@ namespace transport_router {
             : catalogue_(catalogue) {
     }
 
-    TransportRouter& TransportRouter::SetRouteSettings(const TransportRouter::RouteSettings &r_settings) {
+    void TransportRouter::SetSettingsAndBuildGraph(const TransportRouter::RouteSettings &r_settings) {
         r_settings_ = r_settings;
-        return *this;
+        BuildGraph();
     }
 
-    void TransportRouter::BuildRoutes() {
+    void TransportRouter::BuildGraph() {
         graph_ = std::make_unique<graph::DirectedWeightedGraph<double>>(catalogue_.GetStopsCount() * 2);
         AddVertexesAndWaitEdges();
         AddRouteEdges();
@@ -30,6 +30,10 @@ namespace transport_router {
         } else {
             return {};
         }
+    }
+
+    TransportRouter::RouteSettings TransportRouter::GetSettings() const {
+        return r_settings_;
     }
 
     graph::VertexId transport_router::TransportRouter::GetStopVertexID(const Stop *from) const {
@@ -86,13 +90,13 @@ namespace transport_router {
     }
 
     void TransportRouter::AddRoundRouteEdge(const std::string_view bus_name, const Bus *bus_ptr) {
-        for (int i = 0; i < bus_ptr->stops.size() - 1; ++i) {
+        for (int i = 1; i < bus_ptr->stops.size(); ++i) {
             double forward_length = 0.;
-            for (int k = i; k < bus_ptr->stops.size() - 1; ++k) {
-                if (bus_ptr->stops[i] != bus_ptr->stops[k+1]) {
-                    forward_length += catalogue_.GetRealDistance(bus_ptr->stops[k], bus_ptr->stops[k+1]);
-                    CreateRouteEdge(GetStartVertexID(bus_ptr->stops[i]),
-                                    GetStopVertexID(bus_ptr->stops[k+1]), bus_name,forward_length, k-i+1);
+            for (int k = i; k < bus_ptr->stops.size(); ++k) {
+                if (bus_ptr->stops[i-1] != bus_ptr->stops[k]) {
+                    forward_length += catalogue_.GetRealDistance(bus_ptr->stops[k-1], bus_ptr->stops[k]);
+                    CreateRouteEdge(GetStartVertexID(bus_ptr->stops[i-1]),
+                                    GetStopVertexID(bus_ptr->stops[k]), bus_name,forward_length, k-i+1);
                 }
             }
         }

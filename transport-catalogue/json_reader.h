@@ -6,6 +6,7 @@
 #include "map_renderer.h"
 #include "svg.h"
 #include "transport_router.h"
+#include "serialization.h"
 
 namespace json_reader {
     struct Requests {
@@ -46,8 +47,7 @@ namespace json_reader {
     //________________________Разбиваем JSON на типовые запросы
 
     // Получаем параметры визуализатора (запрос render_settings)
-    void GetRenderJsonRequest(request_handler::RequestHandler& request_handler, renderer::MapRenderer& map_renderer,
-                              const json::Dict& request_info);
+    void GetRenderJsonRequest(renderer::MapRenderer& map_renderer, const json::Dict& request_info);
 
     // Добавляем информацию в базу (запрос base_requests)
     void GetInputJsonRequest(transport_catalogue::TransportCatalogue& catalogue, const json::Array& request_info);
@@ -62,4 +62,14 @@ namespace json_reader {
     //Разделяем JSON на типовые запросы
     void GetJsonRequest(transport_catalogue::TransportCatalogue& catalogue, renderer::MapRenderer& map_renderer,
                         transport_router::TransportRouter& router, std::istream& input, std::ostream& output);
+
+    //Обработка запроса на добавление данных в транспортный каталог и их последующая сериализация в файл
+    void MakeBaseRequest(transport_catalogue::TransportCatalogue& catalogue, renderer::MapRenderer& map_renderer,
+                         transport_router::TransportRouter& router, serialize::Serializer& serializer,
+                         std::istream& input);
+
+    //Обработка запроса на получение данных из транспортного каталога десериализацией из файла
+    void ProcessRequest(transport_catalogue::TransportCatalogue& catalogue, renderer::MapRenderer& map_renderer,
+                        transport_router::TransportRouter& router, serialize::Serializer& serializer,
+                        std::istream& input, std::ostream& output);
 }

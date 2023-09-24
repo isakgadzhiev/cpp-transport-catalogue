@@ -104,6 +104,7 @@ namespace renderer {
 
         void SetRenderSettings(const MapRendererSettings& renderer_settings);
         svg::Document AddRoutesOnMap(const std::map<std::string_view, const Bus*>& all_routes) const;
+        MapRendererSettings GetSettings() const;
 
     private:
         MapRendererSettings map_renderer_;

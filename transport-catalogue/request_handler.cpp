@@ -21,6 +21,7 @@ namespace request_handler {
     void RequestHandler::PrintOutputRequests(std::ostream& output) {
         if (!output_request_handler_.empty()) {
             json::Print(json::Document{output_request_handler_}, output);
+            output << std::endl;
         } else {
             return;
         }

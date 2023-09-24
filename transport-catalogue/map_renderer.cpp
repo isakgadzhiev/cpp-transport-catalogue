@@ -63,6 +63,10 @@ svg::Document MapRenderer::AddRoutesOnMap(const std::map<std::string_view, const
     return result;
 }
 
+MapRendererSettings MapRenderer::GetSettings() const {
+    return map_renderer_;
+}
+
 svg::Polyline MapRenderer::DrawRoutePolyline(const Bus* bus_info, SphereProjector& sphere_projector, int route_index) const {
     svg::Polyline route_polyline;
     route_polyline.SetFillColor("none"s);
