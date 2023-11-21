@@ -80,4 +80,5 @@ transport_catalogue.exe process_requests <requests.json >output.txt
 - render_settings — настройки рендеринга карты в формате .SVG.
 - routing_settings — настройки роутера для поиска кратчайших маршрутов.
 - serialization_settings — настройки сериализации/десериализации данных.
+
 Примеры входного файла и файла с запросом к справочнику прилагаются.
