@@ -83,4 +83,4 @@ transport_catalogue.exe process_requests <requests.json >output.txt
 - routing_settings — настройки роутера для поиска кратчайших маршрутов.
 - serialization_settings — настройки сериализации/десериализации данных.
 
-Примеры входного файла и файла с запросом к справочнику прилагаются.
+Примеры входного файла и файла с запросом к справочнику в папке `examples`.
