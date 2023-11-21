@@ -8,22 +8,20 @@
 - Объекты JSON поддерживают цепочки вызовов (method chaining) при конструировании, превращая ошибки применения данных формата JSON в ошибки компиляции.
 
 ## Использованные идеомы, технологии и элементы языка:
-```
-OOP: inheritance, abstract interfaces, final classes
-Unordered map/set
-STL smart pointers
-std::variant and std:optional
-JSON load / output
-SVG image format embedded inside XML output
-Curiously Recurring Template Pattern (CRTP)
-Method chaining
-Facade design pattern
-C++17 with С++20 Ranges emulation
-Directed Weighted Graph data structure for Router module
-Google Protocol Buffers for data serialization
-Static libraries .LIB/.A
-CMake generated project and dependency files
-```
+- OOP: inheritance, abstract interfaces, final classes
+- Unordered map/set
+- STL smart pointers
+- std::variant and std:optional
+- JSON load / output
+- SVG image format embedded inside XML output
+- Curiously Recurring Template Pattern (CRTP)
+- Method chaining
+- Facade design pattern
+- C++17 with С++20 Ranges emulation
+- Directed Weighted Graph data structure for Router module
+- Google Protocol Buffers for data serialization
+- Static libraries .LIB/.A
+- CMake generated project and dependency files
 
 ### Сборка проекта CMake
 ```
