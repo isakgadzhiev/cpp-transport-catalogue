@@ -65,7 +65,7 @@ transport_catalogue.exe process_requests <requests.json >output.txt
 ### Формат входных данных
 
 Входные данные принимаются из stdin в JSON формате. Структура верхнего уровня имеет следующий вид:
-
+```
 {
   "base_requests": [ ... ],
   "render_settings": { ... },
@@ -73,7 +73,7 @@ transport_catalogue.exe process_requests <requests.json >output.txt
   "serialization_settings": { ... },
   "stat_requests": [ ... ]
 }
-
+```
 Каждый элемент является словарем, содержащим следующие данный:
 base_requests — описание автобусных маршрутов и остановок.
 stat_requests — запросы к транспортному справочнику.
