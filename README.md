@@ -61,8 +61,7 @@ target_link_libraries(transport_catalogue "$<IF:$<CONFIG:Debug>,${Protobuf_LIBRA
 `transport_catalogue.exe make_base <make_base.json>`
 
 Для обработки запросов к созданной базе данных (сама база данных десериализуется из ранее созданного файла) необходимо запустить программу с параметром process_requests, указав входной JSON-файл, содержащий запрос(ы) к БД и выходной файл, который будет содержать ответы на запросы, также в формате JSON.
-Пример:
-`transport_catalogue.exe process_requests <process_requests.json> <output.json>`
+Пример: `transport_catalogue.exe process_requests <process_requests.json> <output.json>`
 
 ### Формат входных данных
 
